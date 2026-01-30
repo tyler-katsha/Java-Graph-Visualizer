@@ -25,20 +25,49 @@ public class Graph {
     return false;
   }
   public void print(){
-    System.out.print("  ");
-    for(Node node:nodes){
-      System.out.print(node.label + " ");
-
-    }
-      System.out.println();
-      for(int i = 0 ; i < matrix.length;i++){
-          System.out.print(nodes.get(i).label + " ");
-        for(int j = 0 ; j < matrix.length;j++){
-          System.out.print(matrix[i][j] + " ");
+    for(int i = 0 ; i < nodes.size();i++){
+      Node node = nodes.get(i);
+      System.out.print(node.label + ": ");
+      for(int j = 0 ; j < nodes.size();j++){
+        if(matrix[i][j] != 0){
+          System.out.print(j + " ");
         }
-        System.out.println();
-
-        
+      }
+      System.out.println();
     }
+  }
+  public boolean deleteNode(char label){
+
+    int index = -1;
+
+    for(int i = 0 ; i < nodes.size();i++){
+      if(nodes.get(i).label == label){
+        index = i;
+        break;
+      }
+    }
+
+    if(index == -1) return false;
+
+    nodes.remove(index);
+
+    //shrink matrix
+    int n = matrix.length - 1;
+    int[][] newMatrix = new int[n][n];
+
+    int row = 0;
+    for(int i = 0 ; i < matrix.length;i++){
+      if(i == index) continue;
+      int col = 0;
+      for(int j = 0 ; j < matrix.length;j++){
+        if(j == index) continue;
+        newMatrix[row][col] = matrix[i][j];
+        col++;
+      }
+      row++;
+    }
+
+    matrix = newMatrix;
+    return true;
   }
 }
