@@ -54,7 +54,9 @@ public class ControlPanel extends JPanel implements ActionListener{
             .setGui();
   }
   if(e.getSource() == saveImageBtn){
-    ImageService.saveImage(customPanel.getWidth(),customPanel.getHeight(),customPanel);
+    int w = customPanel.getWidth();
+    int h = customPanel.getHeight();
+    ImageService.saveImage(w,h,customPanel);
   }
   }
 }

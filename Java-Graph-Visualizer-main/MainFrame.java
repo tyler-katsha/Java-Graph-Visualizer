@@ -4,16 +4,18 @@ import java.util.List;
 
 public class MainFrame extends JFrame {
 
-    private final TopControlPanel topControlPanel;
-    private final CustomPanel customPanel;
-    private final ControlPanel controlPanel;
+    private static MainFrame INSTANCE;
+
+    private static TopControlPanel topControlPanel;
+    private static CustomPanel customPanel;
+    private static ControlPanel controlPanel;
 
 
     public MainFrame(CustomPanel customPanel, ControlPanel controlPanel, TopControlPanel topControlPanel) {
 
-        this.topControlPanel = topControlPanel;
-        this.controlPanel = controlPanel;
-        this.customPanel = customPanel;
+        MainFrame.topControlPanel = topControlPanel;
+        MainFrame.controlPanel = controlPanel;
+        MainFrame.customPanel = customPanel;
 
 
     }
