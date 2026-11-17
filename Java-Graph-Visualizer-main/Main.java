@@ -1,23 +1,17 @@
-import java.awt.BorderLayout;
-
-import javax.swing.JFrame;
-
 void main(){
     
-    Graph graph = new Graph(CustomPanel.size);
-    CustomPanel customPanel = new CustomPanel(graph);
+    Graph graph = new Graph(CustomPanel.getSizeG());
+    CustomPanel customPanel = new CustomPanel(graph).setGui();
+
+    TopControlPanel topControlPanel = new TopControlPanel(customPanel)
+            .setGui();
     
-    ControlPanel controlPanel = new ControlPanel(customPanel,graph);
-    JFrame frame = new JFrame();
+    ControlPanel controlPanel = new ControlPanel(customPanel,graph)
+            .setGui();
 
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    var _ = new MainFrame(customPanel,controlPanel,topControlPanel).setGui();
 
-        
-        frame.setLayout(new BorderLayout());
 
-        frame.add(customPanel,BorderLayout.CENTER);
-        frame.add(controlPanel,BorderLayout.SOUTH);
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+
+
 }

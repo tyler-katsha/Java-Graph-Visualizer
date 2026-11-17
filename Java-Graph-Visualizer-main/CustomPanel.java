@@ -1,84 +1,44 @@
 import javax.swing.JPanel;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
-import java.util.Random;
 
 public class CustomPanel extends JPanel implements MouseListener,MouseMotionListener{
-  private static int tileWidth = 15;
-  private static int tileHeight = 15;
-  private static int nodeWidth = 35;
-  private static int nodeHeight = 35;
-  private static final int tileSize = 40;
-  private static int WIDTH = tileWidth*tileSize;
-  private static int HEIGHT = tileHeight*tileSize;
 
-  Graph graph;
-  AddNodeFrame anf;
-  ArrayList<Character> labels;
-  
+  private final static int SIZE = 6;
+  private final static int TILE_WIDTH = 15;
+  private final static int TILE_HEIGHT = 15;
+  private final static int NODE_WIDTH = 35;
+  private final static int NODE_HEIGHT = 35;
+  private final static int tileSize = 40;
+
+  private static int WIDTH = TILE_WIDTH*tileSize;
+  private static int HEIGHT = TILE_HEIGHT*tileSize;
+
+  private int animationDelay = 600;
+  private volatile boolean isRunning = false;
+
+  private final Graph graph;
+
+  private GraphPreset graphPreset = GraphPreset.DEFAULT_HEX;
   private Node draggedNode = null;
   private int offSetX,offSetY;
-  public static int size = 6;
-  public Color customRed = new Color(225,29,46);
-  public Color customGray = new Color(209,213,219);
-  public Color customDarkGray = new Color(43,45,44);
-  Random random = new Random();
 
-  
-  CustomPanel(Graph graph){
+  public CustomPanel(Graph graph){
     this.graph = graph;
+  }
 
-    labels = new ArrayList<>();
-    labels.add('A');
-    labels.add('B');
-    labels.add('C');
-    labels.add('D');
-    labels.add('E');
-    labels.add('F');
-
-
-    for(char label: labels){
-      int cols = WIDTH / tileSize;
-      int rows = HEIGHT / tileSize;
-
-      int blockColumn = random.nextInt(cols);
-      int blockRow = random.nextInt(rows);
-
-      int nodeX = (blockColumn * tileSize) + (tileSize / 2) - (nodeWidth/2);
-      int nodeY = (blockRow * tileSize) + (tileSize / 2) - (nodeHeight/2);
-      
-      graph.addNode(new Node(nodeX,nodeY,label,blockColumn,blockRow));
-
-    }
-
-
-    graph.addEdge(0,1);
-    graph.addEdge(1,2);
-    graph.addEdge(1,3);
-    graph.addEdge(1,4);
-    graph.addEdge(4,0);
-    graph.addEdge(0,2);
-    graph.addEdge(5,2);
-
-    graph.print();
-
-    layoutNodesCircle();
+  public CustomPanel setGui(){
     setLayout(null);
-
-      
-    
     setBackground(Color.BLACK);
     setPreferredSize(new Dimension(WIDTH,HEIGHT));
     addMouseListener(this);
     addMouseMotionListener(this);
-    
+
+    PredefinedGraph.loadPreset(graph,GraphPreset.DEFAULT_HEX,WIDTH,HEIGHT);
+    return this;
   }
 
   @Override
@@ -94,9 +54,13 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
   public void draw(Graphics g){
     //drawGrid(g);
     drawEdge(g,graph);
-    drawNodes(g,graph.nodes);
+    drawNodes(g,graph.getNodes());
   }
-  public static int getTileSize(){
+
+  public static int getSizeG(){
+    return SIZE;
+  }
+  public int getTileSize(){
     return tileSize;
   }
   public int getHeight(){
@@ -105,40 +69,69 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
   public int getWidth(){
     return CustomPanel.WIDTH;
   }
-  public static int getNodeWidth(){
-    return nodeWidth;
-  }
-  public static int getNodeHeight(){
-    return nodeHeight;
+
+  public Graph getGraph(){
+    return graph;
   }
   public void drawNodes(Graphics g,ArrayList<Node> nodes){
 
     for(Node node:nodes){
-      g.setColor(customRed);
-      g.fillOval(node.x,node.y,nodeWidth,nodeHeight);
+
+      switch (node.getState()) {
+        case PROCESSING -> g.setColor(Colors.customBlue);
+        case PROCESSED -> g.setColor(Colors.customGreen);
+        default -> g.setColor(Colors.customRed);
+      }
+
+      g.fillOval(node.getX(),node.getY(),NODE_WIDTH,NODE_HEIGHT);
     
       g.setColor(Color.WHITE);
-      g.drawString(String.valueOf(node.label),node.x + (nodeWidth / 2) - 4, node.y + (nodeHeight / 2) + 4);
+      g.drawString(String.valueOf(node.getData()),node.getX() + (NODE_WIDTH / 2) - 4, node.getY() + (NODE_HEIGHT / 2) + 4);
     } 
   }
   public void drawEdge(Graphics g,Graph graph){
-    g.setColor(customGray);
-    for(int i = 0 ; i < graph.nodes.size(); i ++ ){
-      for(int j = 0 ; j < graph.nodes.size(); j++){
+
+    Graphics2D g2d = (Graphics2D) g;
+
+    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+    g2d.setStroke(new BasicStroke(2.0f));
+
+    for(int i = 0 ; i < graph.getNodes().size(); i ++ ){
+      for(int j = 0 ; j < graph.getNodes().size(); j++){
         if(graph.checkEdge(i, j)){
 
-          Node from = graph.nodes.get(i);
-          Node to = graph.nodes.get(j);
+          Node from = graph.getNodes().get(i);
+          Node to = graph.getNodes().get(j);
 
-          int x1 = from.x + nodeWidth / 2;
-          int y1 = from.y + nodeHeight / 2;
-
-
-          int x2 = to.x + nodeWidth / 2;
-          int y2 = to.y + nodeHeight / 2;
+          int x1 = from.getX() + NODE_WIDTH / 2;
+          int y1 = from.getY() + NODE_HEIGHT / 2;
 
 
-          g.drawLine(x1,y1,x2,y2);
+          int x2 = to.getX() + NODE_WIDTH / 2;
+          int y2 = to.getY() + NODE_HEIGHT / 2;
+
+          int midpointX = (x1 + x2) / 2;
+          int midpointY = (y1 + y2) / 2;
+
+
+          g2d.setColor(Colors.customGray);
+          g2d.drawLine(x1,y1,x2,y2);
+
+          int w = graph.getEdgeWeight(i,j);
+
+          String weightText = String.valueOf(w);
+
+          FontMetrics fm = g2d.getFontMetrics();
+          int textWidth = fm.stringWidth(weightText);
+          int textHeight = fm.getAscent();
+
+          int textX = midpointX - (textWidth / 2);
+          int textY = midpointY - (textHeight / 4);
+
+          g2d.setColor(Color.WHITE);
+          g2d.drawString(weightText, textX,textY);
         }
       }
     }
@@ -150,22 +143,59 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
     for(int i = 0 ; i <= HEIGHT/tileSize;i++)  g.drawLine(0, i*tileSize, WIDTH, i*tileSize);
 
   }
-  public void layoutNodesCircle(){
-    int centerX = WIDTH / 2;
-    int centerY = HEIGHT / 2;
-    int radius = Math.min(WIDTH,HEIGHT)/2 - 80;
 
-    int n = graph.nodes.size();
+  public void setAnimationDelay(int delay) {
+    this.animationDelay = delay;
+  }
 
-    for(int i = 0; i < n; i++){
-      double angle = 2 * Math.PI * i / n;
-
-      int x = (int)(centerX + radius * Math.cos((angle))) - nodeWidth/2;
-      int y = (int)(centerY + radius * Math.sin((angle))) - nodeHeight/2;
-
-      graph.nodes.get(i).x = x;
-      graph.nodes.get(i).y = y;
+  public void resetNodes(){
+    for (Node node: graph.getNodes()) {
+      node.setState(NodeState.UNVISITED);
     }
+
+    repaint();
+  }
+
+  private void stepPause(){
+    repaint();
+    try {
+      Thread.sleep(animationDelay);
+    } catch(InterruptedException e) {
+      String title = "Thread interrupted";
+      String reason = e.getMessage();
+      Popups.showError(reason,title);
+    }
+
+  }
+
+  public void runAlgorithm(AlgorithmType type, int startNodeIndex) {
+    if(isRunning || type == AlgorithmType.NONE) return;
+
+    Runnable task = () -> {
+
+      try {
+        isRunning = true;
+        resetNodes();
+        stepPause();
+
+        switch (type) {
+          case BFS -> graph.bfsAnimated(startNodeIndex, this::stepPause);
+          case DFS -> graph.dfsAnimated(startNodeIndex,this::stepPause);
+          default -> {}
+        }
+      } finally {
+        isRunning = false;
+      }
+
+    };
+    Thread.ofVirtual().start(task);
+  }
+
+  public void loadPreset(GraphPreset preset) {
+    if(isRunning) return;
+    this.graphPreset = preset;
+    PredefinedGraph.loadPreset(graph,preset,WIDTH,HEIGHT);
+    repaint();
   }
 
   @Override
@@ -174,7 +204,7 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
     WIDTH = w;
     HEIGHT = h;
       
-    layoutNodesCircle();
+    PredefinedGraph.loadPreset(graph,graphPreset,WIDTH,HEIGHT);
   }
 
   @Override
@@ -186,14 +216,14 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
     int mouseX = e.getX();
     int mouseY = e.getY();
 
-    for(Node node:graph.nodes){
-      int nodeCenterX = node.x + nodeWidth/2;
-      int nodeCenterY = node.y + nodeHeight/2;
+    for(Node node:graph.getNodes()){
+      int nodeCenterX = node.getX() + NODE_WIDTH/2;
+      int nodeCenterY = node.getY() + NODE_HEIGHT/2;
       double distance = Math.hypot(e.getX() - nodeCenterX,e.getY()-nodeCenterY);
-      if(distance <= nodeWidth/2){
+      if(distance <= (double) NODE_WIDTH /2){
         draggedNode = node;
-        offSetX = mouseX - node.x;
-        offSetY = mouseY - node.y;
+        offSetX = mouseX - node.getX();
+        offSetY = mouseY - node.getY();
         break;
       }
       
@@ -203,28 +233,22 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
 
   @Override
   public void mouseExited(MouseEvent e){}
-
   @Override
   public void mouseClicked(MouseEvent e){}
-
   @Override
   public void mouseReleased(MouseEvent e){
     draggedNode = null;  
   }
-  
+  @Override
+  public void mouseMoved(MouseEvent e) {}
 
 @Override
 public void mouseDragged(MouseEvent e) {
   if(draggedNode != null){
-    draggedNode.x = e.getX() - offSetX;
-    draggedNode.y = e.getY() - offSetY;
-
+    draggedNode.setX(e.getX() - offSetX);
+    draggedNode.setY(e.getY() - offSetY);
     repaint();
   }
 }
-
-@Override
-public void mouseMoved(MouseEvent e) {}
-
 }
 

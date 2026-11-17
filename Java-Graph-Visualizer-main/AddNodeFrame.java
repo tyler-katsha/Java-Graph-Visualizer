@@ -12,76 +12,65 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextArea;
 
 public class AddNodeFrame extends JFrame implements ActionListener{
-  Random random = new Random();
-  JLabel label;
-  JTextArea areaNodeField = new JTextArea();
-  JButton addButton;
-  ArrayList<Node> nodes;
-  public Color customDarkGray = new Color(43,45,44);
-  private static int nodeWidth = 35;
-  private static int nodeHeight = 35;
-  private static final int tileSize = 40;
-  char data;
-  int WIDTH;
-  int HEIGHT;
-  CustomPanel customPanel;
-  int size;
-  Graph graph;
-  AddNodeFrame(Graph graph,int WIDTH,int HEIGHT,CustomPanel customPanel,int size){
+
+  private final static int NODE_WIDTH = 35;
+  private final static int NODE_HEIGHT = 35;
+  private final static int TILE_SIZE = 40;
+
+  private final Random random;
+  private final JLabel label;
+  private final JTextArea areaNodeField;
+  private final JButton addButton;
+  private final CustomPanel customPanel;
+  private final Graph graph;
+
+  public AddNodeFrame(Graph graph,CustomPanel customPanel){
     this.graph = graph;
-    this.nodes = graph.nodes;
-    this.WIDTH = WIDTH;
-    this.HEIGHT = HEIGHT;  
     this.customPanel = customPanel;
-    this.size = size;
+    this.random = new Random();
+    areaNodeField = new JTextArea();
     label = new JLabel("Enter a character");
     addButton = new JButton("Add");
 
-    setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    setSize(300,250);
-    setLocationRelativeTo(null);
-    setLayout(null);
+  }
 
-    label.setBounds(300/2 - 72, 20, 200, 25);
-    label.setFont(new Font("Arial",Font.PLAIN,22));
-    areaNodeField.setBounds(300/2 - 45, 65, 80, 25);
-    areaNodeField.setFont(new Font("Arial",Font.PLAIN,15));
-    
-    
-  
-    addButton.setBounds(300/2 - 45, 100, 80, 30);
-    addButton.addActionListener(this);
-    add(label);
-    add(areaNodeField);
+  public AddNodeFrame setGui(){
 
-    addButton.setFocusable(false);
-    addButton.setBackground(customDarkGray);
-    addButton.setForeground(Color.white);
-    add(addButton);
-    setVisible(true);
+      setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+      setSize(300,250);
+      setLocationRelativeTo(null);
+      setLayout(null);
+
+      label.setBounds(300/2 - 72, 20, 200, 25);
+      label.setFont(new Font("Arial",Font.PLAIN,22));
+      areaNodeField.setBounds(300/2 - 45, 65, 80, 25);
+      areaNodeField.setFont(new Font("Arial",Font.PLAIN,15));
+
+
+
+      addButton.setBounds(300/2 - 45, 100, 80, 30);
+      addButton.addActionListener(this);
+      add(label);
+      add(areaNodeField);
+
+      addButton.setFocusable(false);
+      addButton.setBackground(Colors.customDarkGray);
+      addButton.setForeground(Color.white);
+      add(addButton);
+      setVisible(true);
+
+      return this;
   }
 
   public boolean overlaps(Node node){
-    for(Node n:customPanel.graph.nodes){
-      if(node.x == n.x && node.y == n.y){
+    for(Node n:customPanel.getGraph().getNodes()){
+      if(node.getX() == n.getX() && node.getY() == n.getY()){
         return true;
       }
     }
     return false;
     }
 
-    public int[][] grow(int[][] matrix){
-      int newRows = matrix.length * 2;
-      int newCols = matrix.length * 2;
-
-      int[][] newGrid = new int[newRows][newCols];
-
-      for(int i = 0 ; i < matrix.length;i++){
-          System.arraycopy(matrix[i], 0, newGrid[i], 0, matrix[0].length);
-      }
-
-      return newGrid;
-    }
   @Override
   public void actionPerformed(ActionEvent e) {
     if(e.getSource() == addButton){
@@ -95,27 +84,25 @@ public class AddNodeFrame extends JFrame implements ActionListener{
         return;
       }
       char character = text.charAt(0);
-      for (Node node : customPanel.graph.nodes) {
-        if (node.label == character) {
+      for (Node node : customPanel.getGraph().getNodes()) {
+        if (node.getData() == character) {
           JOptionPane.showMessageDialog(customPanel,"Node '" + character + "' already exists","Duplicate Node",JOptionPane.WARNING_MESSAGE);
         return;
     }
 }
         int attempts = 0;
         Node newNode;
+       if(graph.getNodes().size() >= graph.getMatrix().length) graph.setMatrix(graph.grow(graph.getMatrix()));
 
-       if(graph.nodes.size() >= graph.matrix.length){
-          graph.matrix = grow(graph.matrix);
-       }
-        do{
-          int maxColumns = Math.max(1,customPanel.getWidth()/ CustomPanel.getTileSize());
-          int maxRows = Math.max(1,customPanel.getHeight() / CustomPanel.getTileSize());
+       do{
+          int maxColumns = Math.max(1,customPanel.getWidth()/ customPanel.getTileSize());
+          int maxRows = Math.max(1,customPanel.getHeight() / customPanel.getTileSize());
 
           int blockColumn = random.nextInt(maxColumns);
           int blockRow = random.nextInt(maxRows);
 
-          int nodeX = (blockColumn * tileSize) + (tileSize / 2) - (nodeWidth/2);
-          int nodeY = (blockRow * tileSize) + (tileSize / 2) - (nodeHeight/2);
+          int nodeX = (blockColumn * TILE_SIZE) + (TILE_SIZE / 2) - (NODE_WIDTH/2);
+          int nodeY = (blockRow * TILE_SIZE) + (TILE_SIZE / 2) - (NODE_HEIGHT/2);
 
           newNode = new Node(nodeX,nodeY,character,blockColumn,blockRow);
           attempts++;
@@ -128,12 +115,12 @@ public class AddNodeFrame extends JFrame implements ActionListener{
       }
 
 
-      customPanel.graph.nodes.add(newNode);
+      customPanel.getGraph().getNodes().add(newNode);
       customPanel.repaint();
       dispose();
 
       System.out.println("\n\n");
-      graph.print();
+      graph.printG();
       
     }
   }

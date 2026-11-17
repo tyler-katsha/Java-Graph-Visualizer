@@ -1,129 +1,60 @@
-import java.awt.Color;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.nio.file.FileAlreadyExistsException;
 
-import javax.imageio.ImageIO;
 import javax.swing.JButton;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
-import static java.lang.IO.println;
-
 public class ControlPanel extends JPanel implements ActionListener{
-  private static int index = 1;
-  private static int buttonHeight = 30;
-  private static int WIDTH,HEIGHT;
-  private static int buttonWidth = 180;
-  public Color customGray = new Color(209,213,219);
-  public Color customDarkGray = new Color(43,45,44);
-  CustomPanel customPanel;
-  Graph graph;
-  JButton addNode; 
-  JButton deleteNode;
-  JButton createEdge;
-  JButton saveImage;
-  JButton[] buttons = new JButton[4];
+  private final CustomPanel customPanel;
+  private final Graph graph;
+  private final JButton addNodeBtn,deleteNodeBtn,createEdgeBtn,saveImageBtn;
+  private final JButton[] buttons = new JButton[4];
+
+
   public ControlPanel(CustomPanel customPanel,Graph graph){
     this.graph = graph;
     this.customPanel = customPanel;
-    ControlPanel.WIDTH = customPanel.getWidth();
-    ControlPanel.HEIGHT = 75;
-    addNode = new JButton("Add node"); 
-    deleteNode = new JButton("Delete node");
-    createEdge = new JButton("Create edge connection");
-    saveImage = new JButton("Save");
+    addNodeBtn = new JButton("Add node");
+    deleteNodeBtn = new JButton("Delete node");
+    createEdgeBtn = new JButton("Create edge connection");
+    saveImageBtn = new JButton("Save");
+  }
 
-    buttons[0] = addNode;
-    buttons[1] = deleteNode;
-    buttons[2] = createEdge;
-    buttons[3] = saveImage;
+  public ControlPanel setGui(){
 
-    int gap = 10;
+    buttons[0] = addNodeBtn;
+    buttons[1] = createEdgeBtn;
+    buttons[2] = deleteNodeBtn;
+    buttons[3] = saveImageBtn;
 
-    int totalWidth = (buttonWidth * buttons.length) + (gap * (buttons.length - 1));
-    int startX = (WIDTH - totalWidth) / 2;
-    int y = 15;
-    for(int i = 0;i<buttons.length;i++){
-      JButton button = buttons[i];
-      int x = startX + i * (buttonWidth + gap);
-
+    for (JButton button : buttons) {
       button.setFocusable(false);
-      button.setBounds(x,y,buttonWidth,buttonHeight);
-      button.setBackground(customGray);
-      button.setForeground(customDarkGray);
+      button.setBackground(Colors.customGray);
+      button.setForeground(Colors.customDarkGray);
       button.addActionListener(this);
-      add(button);   
-    }  
-  }
-  @Override
-  public void setBounds(int x, int y, int w, int h){
-    super.setBounds(x, y, w, h);
-    WIDTH = w;
-    HEIGHT = h;
-
-    int gap = 20;
-    int totalWidth = (buttonWidth * buttons.length) + (gap * (buttons.length - 1));
-    int startX = (WIDTH - totalWidth) / 2;
-    int yPos = 15;
-    for(int i = 0;i<buttons.length;i++){
-      JButton button = buttons[i];
-      int bx = startX + i * (buttonWidth + gap);
-      if(button != null){
-        button.setBounds(bx, yPos, buttonWidth, buttonHeight);
-      }
+      add(button);
     }
+
+    return this;
   }
-  private void saveImage(JPanel panel){
 
-    BufferedImage img = new BufferedImage(customPanel.getWidth(), customPanel.getHeight(), BufferedImage.TYPE_INT_RGB);
-    panel.paint(img.getGraphics());
-    try{
-
-      File file = new File("./Image");
-
-      if(!file.exists()) {
-        boolean isCreated = file.mkdirs();
-
-        if(!isCreated) {
-          throw new FileNotFoundException();
-        }
-      }
-
-      String[] item = file.list();
-      long count = (item != null) ? item.length : 0;
-
-      ImageIO.write(img,"png",new File("./Image/graph-" + (count + 1) + ".png"));
-      JOptionPane.showMessageDialog(null, "Panel saved as image", "Image saved", JOptionPane.INFORMATION_MESSAGE);
-
-
-    }  catch(FileNotFoundException e){
-      JOptionPane.showMessageDialog(null, "File path not found", "Location not found", JOptionPane.INFORMATION_MESSAGE);
-    } catch(FileAlreadyExistsException e){
-      JOptionPane.showMessageDialog(null, "File duplicate found", "Duplicate file", JOptionPane.INFORMATION_MESSAGE);
-    }
-    catch(Exception e){
-      JOptionPane.showMessageDialog(null, "Something went wrong", "Error", JOptionPane.INFORMATION_MESSAGE);
-    }
-  }
   @Override
   public void actionPerformed(ActionEvent e) {
-    if(e.getSource() == addNode){
-    new AddNodeFrame(graph,WIDTH,HEIGHT,customPanel,CustomPanel.size);
+    if(e.getSource() == addNodeBtn){
+    new AddNodeFrame(graph,customPanel).setGui();
   }
-  if(e.getSource() == createEdge){
-    new CreateEdgeFrame(graph,customPanel);
+  if(e.getSource() == createEdgeBtn){
+    new CreateEdgeFrame(graph,customPanel)
+            .setGui();
 
   }
-  if(e.getSource() == deleteNode){
-    new DeleteNodeFrame(customPanel);
+  if(e.getSource() == deleteNodeBtn){
+    new DeleteNodeFrame(customPanel)
+            .setGui();
   }
-  if(e.getSource() == saveImage){
-    saveImage(customPanel);
-    index++;
+  if(e.getSource() == saveImageBtn){
+    ImageService.saveImage(customPanel.getWidth(),customPanel.getHeight(),customPanel);
   }
   }
 }

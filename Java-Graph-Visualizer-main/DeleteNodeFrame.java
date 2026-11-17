@@ -10,56 +10,68 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextArea;
 
 public class DeleteNodeFrame extends JFrame implements ActionListener{
-  private int w = 250;
-  private int h = 250;
-  JLabel label;
-  JTextArea areaNodeField = new JTextArea();
-  JButton deleteButton;
-  CustomPanel customPanel;
-  public Color customDarkGray = new Color(43,45,44);
-  DeleteNodeFrame(CustomPanel customPanel){
+  private final static int WIDTH = 250,HEIGHT = 250;
+  private final JLabel label;
+  private final JTextArea areaNodeField;
+  private final JButton deleteButton;
+  private final CustomPanel customPanel;
+
+  public DeleteNodeFrame(CustomPanel customPanel){
     this.customPanel = customPanel;
     label = new JLabel("<html>Enter a character to delete</html>");
     deleteButton = new JButton("Delete");
+    areaNodeField = new JTextArea();
+  }
 
+  public DeleteNodeFrame setGui(){
     setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    setSize(w,h);
+    setSize(WIDTH,HEIGHT);
     setLocationRelativeTo(null);
     setLayout(null);
+
     label.setBounds(300/2 - 150, 20, 200, 45);
     label.setFont(new Font("Arial",Font.PLAIN,22));
     label.setHorizontalAlignment(JLabel.CENTER);
+
     areaNodeField.setBounds(300/2 - 45, 65, 80, 25);
     areaNodeField.setFont(new Font("Arial",Font.PLAIN,15));
-    
-    
-  
-    deleteButton.setBounds(w/2 - 45, 100, 80, 30);
+
+
+
+    deleteButton.setBounds(WIDTH/2 - 45, 100, 80, 30);
     deleteButton.addActionListener(this);
     add(label);
     add(areaNodeField);
 
     deleteButton.setFocusable(false);
-    deleteButton.setBackground(customDarkGray);
+    deleteButton.setBackground(Colors.customDarkGray);
     deleteButton.setForeground(Color.white);
+
     add(deleteButton);
     setVisible(true);
+
+    return this;
   }
 
 
   @Override
   public void actionPerformed(ActionEvent e) {
     if(e.getSource() == deleteButton){
-      String text = areaNodeField.getText().toUpperCase();
-      char character = text.charAt(0);
-      boolean deleted = customPanel.graph.deleteNode(character);
+      String text = areaNodeField.getText().strip().toUpperCase();
+      char data = text.charAt(0);
+      boolean deleted = customPanel.getGraph().deleteNode(data);
         if(text.length() != 1){
-        JOptionPane.showMessageDialog(customPanel, "Please enter exactly one character", "Invalid input", JOptionPane.ERROR_MESSAGE);
+          String reason = "Please enter exactly one character";
+          String title = "Invalid input";
+          Popups.showWarning(reason,title);
         return;
       }
       
       if(!deleted){
-        JOptionPane.showMessageDialog(this, "Node '" + character + "' not found", "Not found", JOptionPane.WARNING_MESSAGE);
+
+        String reason = String.format("Node '%s' not found",data);
+        String title = "Not found";
+        Popups.showError(reason,title);
         return;
       }
 
