@@ -13,12 +13,8 @@ public class DSU {
     }
 
     public int find(int i) {
-
-        if(parent[i] != i) {
-           parent[i] = find(parent[i]);
-        }
-
-        return parent[i];
+        if(parent[i] == i) return i;
+        return parent[i] = find(parent[i]); // Path Compression
     }
 
     public void union(int x, int y) {

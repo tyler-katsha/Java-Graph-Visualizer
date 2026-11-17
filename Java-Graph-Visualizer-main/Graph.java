@@ -1,6 +1,4 @@
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 
 import static java.lang.IO.print;
 import static java.lang.IO.println;
@@ -10,6 +8,8 @@ public class Graph {
   
   private ArrayList<Node> nodes;
   private int[][] matrix;
+  private boolean[][] mstEdges;
+  private int mstWeight = -1;
 
 
   public Graph(int size){
@@ -32,6 +32,10 @@ public class Graph {
     return matrix;
   }
 
+  public int getMstWeight(){
+    return mstWeight;
+  }
+
   public void addNode(Node node){
     nodes.add(node);
   }
@@ -43,6 +47,15 @@ public class Graph {
 
   public boolean checkEdge(int src,int dst){
     return matrix[src][dst] != 0;
+  }
+
+  public boolean isMstEdge(int i,int j) {
+    if(mstEdges == null || i >= mstEdges.length || j >= mstEdges.length) return false;
+    return mstEdges[i][j];
+  }
+  public void clearMstEdges(){
+    if(matrix != null) mstEdges = new boolean[matrix.length][matrix.length];
+    mstWeight = -1;
   }
   public int getEdgeWeight(int src,int dst) {
     return matrix[src][dst];
@@ -189,5 +202,157 @@ public class Graph {
     boolean[] visited = new boolean[nodes.size()];
     dfsHelper(src,visited,onStep);
 
+  }
+
+  public void primMSTAnimated(int src, Runnable onStep) {
+    if(nodes.isEmpty()) return;
+
+    int V = nodes.size();
+    mstEdges = new boolean[matrix.length][matrix.length];
+    mstWeight = 0;
+    onStep.run();
+
+    PriorityQueue<int[]> pq = new PriorityQueue<>((a,b) -> Integer.compare(a[0],b[0]));
+
+    boolean[] visited = new boolean[V];
+
+    int mstWeight = 0;
+
+    addToIntArr(pq,0,src,-1);
+
+    while(!pq.isEmpty()) {
+      int[] p = pq.poll();
+      int wt = p[0];
+      int u = p[1];
+      int parent = p[2];
+
+      if(visited[u]) continue;
+
+      visited[u] = true;
+      this.mstWeight += wt;
+
+      if(parent != -1) {
+        mstEdges[parent][u] = true;
+        mstEdges[u][parent] = true;
+      }
+
+      nodes.get(u).setState(NodeState.PROCESSING);
+      onStep.run();
+
+     for(int v = 0; v < V;v++) {
+       int edgeWeight = matrix[u][v];
+       if(!visited[v] && edgeWeight != 0) {
+         addToIntArr(pq,edgeWeight,v,u);
+       }
+     }
+
+     nodes.get(u).setState(NodeState.PROCESSED);
+     onStep.run();
+    }
+
+    removeUnmarkedLabels(V,visited,onStep);
+  }
+
+  private void addToIntArr(PriorityQueue<int[]> pq,int weight,int current,int parent){
+    pq.add(new int[]{weight, current,parent});
+  }
+
+  public void dijsktraAnimated(){
+    if(nodes.isEmpty()) return;
+  }
+
+  public void kruskalsAnimated(Runnable onStep){
+    if(nodes.isEmpty()) return;
+
+    int V = nodes.size();
+
+    mstEdges = new boolean[matrix.length][matrix.length];
+    this.mstWeight = 0;
+    onStep.run();
+
+    List<int[]> edges = new ArrayList<>();
+
+    for(int i = 0; i < V;i++) {
+      for (int j = i + 1 ; j < V;j++) {
+        if(matrix[i][j] != 0) edges.add(new int[]{matrix[i][j], i, j});
+      }
+    }
+
+    edges.sort(Comparator.comparingInt(a -> a[0]));
+
+    DSU dsu = new DSU(V);
+    boolean[] inMst = new boolean[V];
+    int edgesIncluded = 0;
+
+    for(int[] edge: edges) {
+      int wt = edge[0];
+      int u = edge[1];
+      int v = edge[2];
+
+      NodeState prevStateU = nodes.get(u).getState();
+      NodeState prevStateV = nodes.get(v).getState();
+
+      nodes.get(u).setState(NodeState.PROCESSING);
+      nodes.get(v).setState(NodeState.PROCESSING);
+      onStep.run();
+
+      if(dsu.find(u) != dsu.find(v)) {
+        dsu.union(u,v);
+
+        this.mstWeight += wt;
+
+        mstEdges[u][v] = true;
+        mstEdges[v][u] = true;
+        inMst[u] = true;
+        inMst[v] = true;
+
+
+        nodes.get(u).setState(NodeState.PROCESSED);
+        nodes.get(v).setState(NodeState.PROCESSED);
+        onStep.run();
+
+        edgesIncluded++;
+        if(edgesIncluded == V - 1) break;
+      } else {
+        nodes.get(u).setState(prevStateU);
+        nodes.get(v).setState(prevStateV);
+        onStep.run();
+      }
+    }
+
+    removeUnmarkedLabels(V,inMst,onStep);
+  }
+
+  private void removeUnmarkedLabels(int V, boolean[] set, Runnable onStep){
+    for (int i =0 ;i < V; i++) {
+      for(int j = 0; j < V;j++) {
+        if(!mstEdges[i][j]) matrix[i][j] = 0;
+      }
+    }
+
+    List<Character> unreachableLabels = new ArrayList<>();
+
+    for(int i =0 ; i < V;i++) {
+      if(!set[i]) {
+        unreachableLabels.add(nodes.get(i).getData());
+      }
+    }
+
+    for(char label: unreachableLabels) {
+      deleteNode(label);
+    }
+
+    int remaining = nodes.size();
+    mstEdges = new boolean[matrix.length][matrix.length];
+
+    for (int i =0; i < remaining;i++) {
+      for (int j = 0; j < remaining;j++) {
+        if(matrix[i][j] != 0) {
+          mstEdges[i][j] = true;
+        }
+
+      }
+    }
+    onStep.run();
   }
 }

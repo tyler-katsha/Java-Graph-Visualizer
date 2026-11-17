@@ -6,4 +6,5 @@ public class Colors {
     public final static Color customRed = new Color(225,29,46);
     public final static Color customGreen = new Color(16,185,129);
     public final static Color customBlue = new Color(59,130,246);
+    public final static Color customBrightGreen = new Color(57, 255, 20);
 }

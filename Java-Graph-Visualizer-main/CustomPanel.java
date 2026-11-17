@@ -55,7 +55,10 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
     //drawGrid(g);
     drawEdge(g,graph);
     drawNodes(g,graph.getNodes());
+    drawMstWeight(g);
   }
+
+
 
   public static int getSizeG(){
     return SIZE;
@@ -73,7 +76,7 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
   public Graph getGraph(){
     return graph;
   }
-  public void drawNodes(Graphics g,ArrayList<Node> nodes){
+  private void drawNodes(Graphics g,ArrayList<Node> nodes){
 
     for(Node node:nodes){
 
@@ -89,14 +92,12 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
       g.drawString(String.valueOf(node.getData()),node.getX() + (NODE_WIDTH / 2) - 4, node.getY() + (NODE_HEIGHT / 2) + 4);
     } 
   }
-  public void drawEdge(Graphics g,Graph graph){
+  private void drawEdge(Graphics g,Graph graph){
 
     Graphics2D g2d = (Graphics2D) g;
 
     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
     g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-    g2d.setStroke(new BasicStroke(2.0f));
 
     for(int i = 0 ; i < graph.getNodes().size(); i ++ ){
       for(int j = 0 ; j < graph.getNodes().size(); j++){
@@ -116,7 +117,14 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
           int midpointY = (y1 + y2) / 2;
 
 
-          g2d.setColor(Colors.customGray);
+          if(graph.isMstEdge(i,j)) {
+            g2d.setColor(Colors.customBrightGreen);
+            g2d.setStroke(new BasicStroke(3.5f));
+          } else {
+            g2d.setColor(Colors.customGray);
+            g2d.setStroke(new BasicStroke(2.0f));
+          }
+
           g2d.drawLine(x1,y1,x2,y2);
 
           int w = graph.getEdgeWeight(i,j);
@@ -137,10 +145,33 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
     }
 
   }
-  public void drawGrid(Graphics g){
+  private void drawGrid(Graphics g){
 
     for(int i = 0 ; i <= WIDTH/tileSize;i++) g.drawLine(i*tileSize,0,i*tileSize,HEIGHT);
     for(int i = 0 ; i <= HEIGHT/tileSize;i++)  g.drawLine(0, i*tileSize, WIDTH, i*tileSize);
+
+  }
+  private void drawMstWeight(Graphics g) {
+    if(graph.getMstWeight() < 0) return;
+
+    Graphics2D g2d = (Graphics2D) g;
+
+    g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+    String text = String.format("Total MST Weight: %d", graph.getMstWeight());
+
+    Font originalFont = g2d.getFont();
+    g2d.setFont(originalFont.deriveFont(Font.BOLD,16f));
+
+    FontMetrics fm = g2d.getFontMetrics();
+    int textWidth = fm.stringWidth(text);
+
+    int topRightX = getWidth() - textWidth - 20;
+    int topRightY = 30;
+    g2d.setColor(Colors.customBrightGreen);
+    g2d.drawString(text,topRightX,topRightY);
+
+    g2d.setFont(originalFont);
 
   }
 
@@ -152,6 +183,8 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
     for (Node node: graph.getNodes()) {
       node.setState(NodeState.UNVISITED);
     }
+
+    graph.clearMstEdges();
 
     repaint();
   }
@@ -181,6 +214,8 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
         switch (type) {
           case BFS -> graph.bfsAnimated(startNodeIndex, this::stepPause);
           case DFS -> graph.dfsAnimated(startNodeIndex,this::stepPause);
+          case MST_PRIM -> graph.primMSTAnimated(startNodeIndex,this::stepPause);
+          case MST_KRUSKAL -> graph.kruskalsAnimated(this::stepPause);
           default -> {}
         }
       } finally {
@@ -193,6 +228,7 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
 
   public void loadPreset(GraphPreset preset) {
     if(isRunning) return;
+    graph.clearMstEdges();
     this.graphPreset = preset;
     PredefinedGraph.loadPreset(graph,preset,WIDTH,HEIGHT);
     repaint();
