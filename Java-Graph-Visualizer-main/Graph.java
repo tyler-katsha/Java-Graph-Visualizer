@@ -333,6 +333,7 @@ public class Graph {
     removeUnmarkedLabels(V,visited,onStep);
   }
 
+  
   public void kruskalsAnimated(Runnable onStep){
     if(nodes.isEmpty()) return;
 
@@ -433,5 +434,268 @@ public class Graph {
     mstWeight = -1;
     output.clear();
 
+  }
+
+  public void aStarAnimated(int[][] aStarGrid, int[] src, int[] dest, Runnable onStep) {
+
+    int ROW = aStarGrid.length;
+    int COL = aStarGrid[0].length;
+    boolean isFound = false;
+    if(!AStarHelper.isValid(src[0],src[1],ROW,COL) || !AStarHelper.isValid(dest[0],dest[1], ROW,COL)) {
+      Popups.showWarning("Source or Destination is invalid","Invalid I/O");
+      return;
+    }
+
+    if(!AStarHelper.isUnblocked(aStarGrid,src[0],src[1]) || !AStarHelper.isUnblocked(aStarGrid,dest[0],dest[1])) {
+      Popups.showWarning("Source or Destination is blocked","Blocked I/O");
+      return;
+    }
+
+    if(AStarHelper.isDestination(dest, src[0],src[1])) {
+      Popups.showInfo("We are already at then destination", "Destination");
+      return;
+    }
+
+    clearMstEdgeAndOutput();
+
+    boolean[][] closedList = new boolean[ROW][COL];
+    Cell[][] cellDetails = new Cell[ROW][COL];
+
+    for (int i = 0; i < ROW;i++) {
+      for(int j = 0; j < COL;j++) {
+
+        double inf = Double.POSITIVE_INFINITY;
+        cellDetails[i][j] = new Cell.CellBuilder()
+                .parentI(-1)
+                .parentJ(-1)
+                .f(inf)
+                .g(inf)
+                .h(inf)
+                .build();
+
+      }
+    }
+
+    int i = src[0];
+    int j = src[1];
+
+    cellDetails[i][j].setF(0);
+    cellDetails[i][j].setH(0);
+    cellDetails[i][j].setG(0);
+    cellDetails[i][j].setParentI(i);
+    cellDetails[i][j].setParentJ(j);
+
+    PriorityQueue<double[]> openList = new PriorityQueue<>(Comparator.comparingDouble(a -> a[0]));
+
+    openList.offer(new double[]{0 , i , j});
+
+    while(!openList.isEmpty()) {
+
+      double[] p = openList.poll();
+      i = (int) p[1];
+      j = (int) p[2];
+
+      if(closedList[i][j]) continue;
+      closedList[i][j] = true;
+
+      int nodeIdx = searchByCoords(i,j);
+
+      if(nodeIdx != -1) {
+        nodes.get(nodeIdx).setState(NodeState.PROCESSING);
+        onStep.run();
+      }
+
+      int[][] directions = { {-1,0},  // North
+                             {1,0},   // South
+                             {0,-1},  // West
+                             {0,1},   // East
+                             {-1,-1}, // North-West
+                             {-1,1},  // North-East
+                             {1,1},   // South-East
+                             {1, -1}  // South-West
+                            };
+
+      for(int[] dir : directions) {
+        int newI = i + dir[0];
+        int newJ = j + dir[1];
+        isFound = AStarHelper.processNeighbour(i,j,newI,newJ,aStarGrid,cellDetails,closedList,openList,dest,ROW,COL);
+
+        if(isFound){
+          if(nodeIdx != -1) nodes.get(nodeIdx).setState(NodeState.PROCESSED);
+          highlightAStarPath(cellDetails,dest,onStep);
+          return;
+        }
+      }
+
+      if(nodeIdx != -1) {
+        nodes.get(nodeIdx).setState(NodeState.PROCESSED);
+        onStep.run();
+      }
+    }
+
+    if(!isFound) {
+      Popups.showInfo("Failed to find the destination cell","Failed Search");
+      println("Failed to find the destination cell");
+    }
+
+
+  }
+
+  private void highlightAStarPath(Cell[][] cellDetails,int[] dest,Runnable onStep) {
+    int V = nodes.size();
+    boolean[] inPath = new boolean[V];
+
+    int r = dest[0];
+    int c = dest[1];
+
+    while(!(r == cellDetails[r][c].getParentI() && c == cellDetails[r][c].getParentJ())) {
+      int pr = cellDetails[r][c].getParentI();
+      int pc = cellDetails[r][c].getParentJ();
+
+      int u = searchByCoords(r,c);
+      int v = searchByCoords(pr,pc);
+
+      if(u != -1 && v != -1) {
+        inPath[v] = true;
+        inPath[u] = true;
+        mstEdges[u][v] = true;
+        mstEdges[v][u] = true;
+        nodes.get(u).setState(NodeState.PROCESSED);
+        onStep.run();
+      }
+
+      r = pr;
+      c = pc;
+    }
+
+    int startIdx = searchByCoords(r,c);
+    if(startIdx != -1) {
+      inPath[startIdx] = true;
+      nodes.get(startIdx).setState(NodeState.PROCESSED);
+      onStep.run();
+    }
+
+    removeAStarUnmarked(V,inPath,onStep);
+  }
+
+  private void removeAStarUnmarked(int V,boolean[] set,Runnable onStep) {
+
+    for (int i =0 ;i < V; i++) {
+      for(int j = 0; j < V;j++) {
+        if(!mstEdges[i][j]) matrix[i][j] = 0;
+      }
+    }
+
+    for(int i = V - 1; i >= 0;i--) {
+      if(!set[i]) {
+        deleteNodeByIdx(i);
+      }
+    }
+
+    int remaining = nodes.size();
+    mstEdges = new boolean[matrix.length][matrix.length];
+
+    for (int i = 0; i < remaining; i++) {
+      for (int j = 0; j < remaining; j++) {
+        if (matrix[i][j] != 0) {
+          mstEdges[i][j] = true;
+        }
+      }
+    }
+
+    onStep.run();
+  }
+
+  public static Graph buildGraphFromGrid(int[][] grid, int[] src, int[] dest, int startX, int startY, int spacing) {
+    int rows = grid.length;
+    int cols = grid[0].length;
+
+    // Count open cells so the adjacency matrix is sized exactly
+    int openCount = 0;
+    int[][] cellToIndex = new int[rows][cols];
+    for (int r = 0; r < rows; r++) {
+      Arrays.fill(cellToIndex[r], -1);
+      for (int c = 0; c < cols; c++) {
+        if (grid[r][c] == 1) {
+          cellToIndex[r][c] = openCount++;
+        }
+      }
+    }
+
+    Graph graph = new Graph(openCount);
+
+    // Add a Node for every open cell at its (x, y) grid position
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (grid[r][c] == 1) {
+          int x = startX + c * spacing;
+          int y = startY + r * spacing;
+
+          char label = '.';
+          if (r == src[0] && c == src[1]) label = 'S';
+          else if (r == dest[0] && c == dest[1]) label = 'D';
+
+          graph.addNode(new Node(x, y,label, c,r));
+        }
+      }
+    }
+
+    // Connect adjacent open cells (Right & Down avoids duplicate edges)
+    // If your A* allows diagonal moves, use this instead:
+    int[][] dirs = { {0, 1}, {1, 0}, {1, 1}, {1, -1} };
+
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        int u = cellToIndex[r][c];
+        if (u == -1) continue;
+
+        for (int[] d : dirs) {
+          int nr = r + d[0];
+          int nc = c + d[1];
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            int v = cellToIndex[nr][nc];
+            if (v != -1) {
+              graph.addEdge(u, v, 1);
+            }
+          }
+        }
+      }
+    }
+
+    return graph;
+  }
+
+
+  private int searchByCoords(int row,int col) {
+    for (int i = 0; i < nodes.size();i++) {
+      Node n = nodes.get(i);
+      if(n.getRow() == row && n.getCol() == col) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  private void deleteNodeByIdx(int index) {
+    if(index < 0 || index >= nodes.size()) return;
+
+    nodes.remove(index);
+
+    int n = matrix.length - 1;
+    int[][] newMatrix = new int[n][n];
+
+    int r = 0;
+    for(int i = 0; i < matrix.length; i++) {
+      if(i == index) continue;
+      int c = 0;
+      for(int j = 0; j < matrix.length;j++) {
+        if(j == index) continue;
+        newMatrix[r][c] = matrix[i][j];
+        c++;
+      }
+      r++;
+    }
+
+    matrix = newMatrix;
   }
 }

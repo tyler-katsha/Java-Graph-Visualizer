@@ -24,6 +24,7 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
 
   private GraphPreset graphPreset = GraphPreset.DEFAULT_HEX;
   private Node draggedNode = null;
+  private boolean isAStarMode = false;
   private int offSetX,offSetY;
 
   public CustomPanel(Graph graph){
@@ -251,12 +252,58 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
     };
     Thread.ofVirtual().start(task);
   }
+  public void runAStar(int[][] aStarGrid, int[] src, int[] dest,AlgorithmType type) {
+    if(isRunning || type == AlgorithmType.NONE) return;
+
+    Runnable task = () -> {
+
+      try {
+
+        isRunning = true;
+        resetNodes();
+        stepPause();
+
+        graph.aStarAnimated(aStarGrid,src,dest,this::stepPause);
+
+      } finally {
+        isRunning = false;
+      }
+    };
+
+    Thread.ofVirtual().start(task);
+  }
 
   public void loadPreset(GraphPreset preset) {
     if(isRunning) return;
+    isAStarMode = false;
     graph.clearMstEdges();
     this.graphPreset = preset;
     PredefinedGraph.loadPreset(graph,preset,WIDTH,HEIGHT);
+    repaint();
+  }
+
+  public void loadAStarGrid(int[][] aStarGrid, int[] src, int[] dest) {
+
+    if(isRunning) return;
+    isAStarMode = true;
+    graph.clearMstEdges();
+
+    int rows = aStarGrid.length;
+    int cols = aStarGrid[0].length;
+
+    int padding = 80;
+    int spacingX = (WIDTH - 2 * padding) / Math.max(1,cols - 1);
+    int spacingY = (HEIGHT - 2 * padding) / Math.max(1,rows - 1);
+    int spacing = Math.min(spacingX,spacingY);
+
+    int startX = (WIDTH - (cols - 1) * spacing) / 2;
+    int startY = (HEIGHT - (rows - 1) * spacing) / 2;
+
+    Graph gridGraph = Graph.buildGraphFromGrid(aStarGrid,src,dest,startX,startY,spacing);
+    graph.setNodes(gridGraph.getNodes());
+    graph.setMatrix(gridGraph.getMatrix());
+    graph.clearMstEdges();
+
     repaint();
   }
 
@@ -266,7 +313,9 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
     WIDTH = w;
     HEIGHT = h;
       
-    PredefinedGraph.loadPreset(graph,graphPreset,WIDTH,HEIGHT);
+    if(!isAStarMode) {
+      PredefinedGraph.loadPreset(graph,graphPreset,WIDTH,HEIGHT);
+    }
   }
 
   @Override
@@ -312,5 +361,8 @@ public void mouseDragged(MouseEvent e) {
     repaint();
   }
 }
+
+
+
 }
 
