@@ -10,11 +10,13 @@ public class Graph {
   private int[][] matrix;
   private boolean[][] mstEdges;
   private int mstWeight = -1;
+  private List<Integer> output;
 
 
   public Graph(int size){
     nodes = new ArrayList<>();
     matrix = new int[size][size];
+    output = new ArrayList<>();
   }
 
   public void setMatrix(int[][] matrix) {
@@ -71,6 +73,24 @@ public class Graph {
       }
       println();
     }
+  }
+
+  public int getOutputSize() {
+    return output.size();
+  }
+
+  public String getOutput() {
+    if(this.output.isEmpty()) return "[]";
+
+    int V = output.size();
+    StringBuilder arr = new StringBuilder("[");
+
+    for (int i = 0; i < V;i++) {
+      int ele = output.get(i);
+      if(i == V - 1) arr.append(ele);
+      else arr.append(ele).append(", ");
+    }
+    return arr.append("]").toString();
   }
 
   public int[][] grow(int[][] matrix){
@@ -216,8 +236,6 @@ public class Graph {
 
     boolean[] visited = new boolean[V];
 
-    int mstWeight = 0;
-
     addToIntArr(pq,0,src,-1);
 
     while(!pq.isEmpty()) {
@@ -257,8 +275,62 @@ public class Graph {
     pq.add(new int[]{weight, current,parent});
   }
 
-  public void dijsktraAnimated(){
+  public void dijkstraAnimated(int src, Runnable onStep){
     if(nodes.isEmpty()) return;
+
+    int V = nodes.size();
+    int[] dist = new int[V];
+    int[] parent = new int[V];
+    boolean[] visited = new boolean[V];
+
+    Arrays.fill(dist,Integer.MAX_VALUE);
+    Arrays.fill(parent,-1);
+
+    clearMstEdgeAndOutput();
+
+    dist[src] = 0;
+    onStep.run();
+
+    PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[0]));
+
+    pq.offer(new int[]{0 , src});
+
+    while(!pq.isEmpty()) {
+      int[] curr = pq.poll();
+      int d = curr[0];
+      int u = curr[1];
+
+      if(visited[u]) continue;
+      visited[u] = true;
+      output.add(d);
+
+
+      if(parent[u] != -1) {
+        mstEdges[parent[u]][u] = true;
+        mstEdges[u][parent[u]] = true;
+      }
+
+      nodes.get(u).setState(NodeState.PROCESSING);
+      onStep.run();
+
+      for (int v = 0; v < V; v++){
+        int edgeWeight = matrix[u][v];
+        if(!visited[v] && edgeWeight > 0) {
+          int newDist = d + edgeWeight;
+          if(newDist < dist[v]) {
+            dist[v] = newDist;
+            parent[v] = u;
+            pq.offer(new int[]{newDist,v});
+          }
+        }
+      }
+
+      nodes.get(u).setState(NodeState.PROCESSED);
+      onStep.run();
+
+
+    }
+    removeUnmarkedLabels(V,visited,onStep);
   }
 
   public void kruskalsAnimated(Runnable onStep){
@@ -354,5 +426,12 @@ public class Graph {
       }
     }
     onStep.run();
+  }
+
+  private void clearMstEdgeAndOutput(){
+    if (matrix != null) mstEdges = new boolean[matrix.length][matrix.length];
+    mstWeight = -1;
+    output.clear();
+
   }
 }

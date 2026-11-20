@@ -56,6 +56,7 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
     drawEdge(g,graph);
     drawNodes(g,graph.getNodes());
     drawMstWeight(g);
+    drawDstArray(g);
   }
 
 
@@ -175,6 +176,30 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
 
   }
 
+  private void drawDstArray(Graphics g) {
+
+    if(graph.getOutputSize() == 0) return;
+
+    Graphics2D g2d = (Graphics2D) g;
+
+    g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+    String text = String.format("Distance sources: %s", graph.getOutput());
+
+    Font originalFont = g2d.getFont();
+    g2d.setFont(originalFont.deriveFont(Font.BOLD,16f));
+
+    FontMetrics fm = g2d.getFontMetrics();
+    int textWidth = fm.stringWidth(text);
+
+    int topRightX = getWidth() - textWidth - 20;
+    int topRightY = 30;
+    g2d.setColor(Colors.customBrightGreen);
+    g2d.drawString(text,topRightX,topRightY);
+
+    g2d.setFont(originalFont);
+  }
+
   public void setAnimationDelay(int delay) {
     this.animationDelay = delay;
   }
@@ -216,6 +241,7 @@ public class CustomPanel extends JPanel implements MouseListener,MouseMotionList
           case DFS -> graph.dfsAnimated(startNodeIndex,this::stepPause);
           case MST_PRIM -> graph.primMSTAnimated(startNodeIndex,this::stepPause);
           case MST_KRUSKAL -> graph.kruskalsAnimated(this::stepPause);
+          case DIJKSTRA -> graph.dijkstraAnimated(startNodeIndex,this::stepPause);
           default -> {}
         }
       } finally {
